@@ -44,7 +44,7 @@
 </template>
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { Map } from "../utils/map-base";
+import { Map } from "../models/map";
 
 export default defineComponent({
   props: {

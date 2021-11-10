@@ -37,9 +37,9 @@
 <script lang="ts">
 import { defineComponent, PropType, ref } from "vue";
 import { useMainStore } from "../store";
-import { AsideMap, MapGroup } from "../utils/map-base";
 
 import { ChevronDownIcon } from "@heroicons/vue/solid";
+import { AsideMap, MapGroup } from "../models/map";
 
 export default defineComponent({
   components: {

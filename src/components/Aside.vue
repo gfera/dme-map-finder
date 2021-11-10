@@ -7,6 +7,7 @@
       shadow-2xl
       text-left
       flex flex-col
+      bg-white
       dark:bg-gray-700
     "
   >

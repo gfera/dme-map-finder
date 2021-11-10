@@ -1,15 +1,14 @@
 import { defineStore } from "pinia";
+import { AsideMap, Map } from "../models/map";
 import {
-  AsideMap,
   calcChecksum8Bit,
   extractMaps,
   findPartNumber,
-  findRevLimiter,
   getChecksum,
   getMapTablesAddress,
-  Map,
   mapGroups,
 } from "../utils/map-base";
+import { findRevLimiter, RevLimiter } from "../utils/rev-limiter";
 
 interface LoadedFile {
   name: string;
@@ -22,10 +21,11 @@ export const useMainStore = defineStore("main", {
   state: () => {
     return {
       loadedBin: null as unknown as LoadedFile,
-      ecuNumber:"",
+      ecuNumber: "",
       checksumCurrent: "",
       checksumNew: "",
       openedMaps: [] as Map[],
+      revLimiters: [] as RevLimiter[],
       maps: [] as Map[],
       mapGroups,
       addresses: [] as number[],
@@ -40,12 +40,12 @@ export const useMainStore = defineStore("main", {
         bytes: Array.from(buffer8Bit),
         name: payload.name,
       });
-      // this.ecuNumber = findPartNumber(buffer8Bit);
-      console.log(findRevLimiter(buffer8Bit))
+      this.ecuNumber = findPartNumber(buffer8Bit);
       this.checksumCurrent = getChecksum(buffer8Bit);
       this.checksumNew = calcChecksum8Bit(buffer8Bit);
       this.addresses = getMapTablesAddress(this.loadedBin.bytes);
       this.maps = extractMaps(this.loadedBin.bytes, this.addresses);
+      this.maps.push(...findRevLimiter(buffer8Bit));
       this.openedMaps = [];
       this.mapGroups.forEach((group) => {
         group.items = this.maps
