@@ -1,0 +1,6 @@
+Also,
+A long time ago I found a simple EXE on some random website to calculate checksums for a few different DME's. I disassembled the EXE and got the exact algorithm used for the checksum in M1.x. It is pretty simple. Again, addresses are referring to those on the 32K EPROM, not the proper 40K image.
+
+CSUM = MOD([SUM(0000h:1EFFh) + SUM(2000h:7FFFh) + 46367], 65536)
+
+This 16 bit value is then stored at address 1F00h:1F01h (MSB:LSB).

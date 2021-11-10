@@ -1,0 +1,6 @@
+{
+  "enable": true,
+  "rules": {
+    "init-declarations": "off"
+  }
+}
