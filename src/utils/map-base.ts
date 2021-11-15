@@ -1,6 +1,5 @@
 import { Map, MapCategories, MapGroup } from "../models/map";
 import { findPattern } from "./misc";
-import { findRevLimiter } from "./rev-limiter";
 
 /////////////////////////
 const mapTablesStart = 0x4590;
@@ -17,10 +16,11 @@ export const getMapTablesAddress = (bytes: number[]) => {
     }
     return prev;
   }, []);
+  const romSize = bytes.length;
   return addresses
     .sort()
     .filter(
-      (v, i, a) => a.indexOf(v) === i && v > mapTablesStart && v < 0x7999
+      (v, i, a) => a.indexOf(v) === i && v > mapTablesStart && v < romSize
     );
 };
 
@@ -52,7 +52,7 @@ export const getChecksum = (buffer: Uint8Array) => {
   return buffer[0x1f00].toString(16) + buffer[0x1f01].toString(16);
 };
 export const calcChecksum8Bit = (buffer: Uint8Array) => {
-  // 0x0000 - 0xEFFh chk1
+  // 0x0000 - 0x1FFh chk1
   // 0x2000 - 0x7fff chk2
   // 0x1F00 Chk location
   // Offset 0xB51F

@@ -13,14 +13,24 @@ export const CIgnitionBTDC = new UnitConverter(
   "(X*0.75)-22.5"
 );
 
+export const CLoad = new UnitConverter(
+  "Load",
+  (v: number) => Math.round(v * 0.05 * 10) / 10,
+  "(X*0.05)",
+  "ms"
+);
+
+export const CTPS = new UnitConverter(
+  "TPS",
+  (v: number) => v * 0.41667 - 5.34,
+  "(X*0.41667 - 5.34)"
+);
+
 export const CRPM = new UnitConverter(
   "RPM",
   (v: number) => parseFloat((v * 40).toFixed(1)),
   "X*40"
 );
-
-// 0x36,"Battery voltage", 1, "#scaling unsigned 1 X*0.0681 Volt";
-// 0x11,"Current cylinder", 1, "#scaling unsigned 1 X";
 
 export const CAirTemperature = new UnitConverter(
   "Air Temp",
@@ -44,7 +54,6 @@ export const CCoolant = new UnitConverter(
 export const CAFR = new UnitConverter(
   "AFR",
   (v: number) => parseFloat((1881.6 / v).toFixed(1)),
-  //   (v: number) => v,
   "1881.6/X",
   "λ"
 );
@@ -52,7 +61,6 @@ export const CAFR = new UnitConverter(
 export const CAirMass = new UnitConverter(
   "AirMass",
   (v: number) => parseFloat((v * 0.2).toFixed(1)),
-  //   (v: number) => v,
   "X*.02",
   "Kg/h"
 );

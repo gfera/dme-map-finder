@@ -4,6 +4,10 @@ import { CAFR, CIgnitionBTDC } from "../utils/unit-converters";
 export class MapAxis {
   public values!: number[];
   public allValues!: number[];
+  private _minRawValue: number = 0;
+  private _maxRawValue: number = 0;
+  private _minValue: number = 0;
+  private _maxValue: number = 0;
   constructor(
     public address: number,
     public descriptor: MapDescriptor | null,
@@ -31,6 +35,7 @@ export class MapAxis {
     const str = this.descriptor?.name.toLowerCase() || "";
     return str.indexOf("linearization") >= 0 || str.indexOf("constant") >= 0;
   }
+
   private calcValues() {
     this.values = this.rawValues.map((_, i) => {
       return this.rawValues.reduceRight((prev, next, idx) => {
@@ -41,7 +46,24 @@ export class MapAxis {
     const { conversion } = this.descriptor;
     if (conversion) {
       this.values = this.values.map((v) => conversion(v));
+      this._maxValue = Math.max(...this.values);
+      this._minValue = Math.min(...this.values);
     }
+    this._minRawValue = Math.min(...this.rawValues);
+    this._maxRawValue = Math.max(...this.rawValues);
+  }
+
+  get minValue() {
+    return this._minValue;
+  }
+  get maxValue() {
+    return this._maxValue;
+  }
+  get minRawValue() {
+    return this._minRawValue;
+  }
+  get maxRawValue() {
+    return this._maxRawValue;
   }
 }
 
@@ -49,8 +71,15 @@ export class Map {
   public dataAddress: number = 0;
   public xAxis: MapAxis;
   public yAxis: MapAxis;
-  public rawValues: number[];
-  public values: number[];
+  public rawValues: number[] = [];
+  public values: number[] = [];
+  //
+  private _minRawValue: number = 0;
+  private _maxRawValue: number = 0;
+  private _minValue: number = 0;
+  private _maxValue: number = 0;
+  //
+
   public name: string = "Unknown";
   public category: MapCategories = MapCategories.Unknown;
   private _isValid: boolean = true;
@@ -67,13 +96,33 @@ export class Map {
     }
   }
 
-  private analyzeAxis(address: number, array: number[]) {
+  private analyzeAxis(
+    address: number,
+    array: number[],
+    currMapSize: number,
+    potentialSize: number
+  ) {
     const descriptor = findDescriptor(array[0]);
     const count = array[1];
     const values = array.slice(2, count + 2);
-    return count > 16 ? null : new MapAxis(address, descriptor, count, values);
+    const yAxisFits = currMapSize < potentialSize;
+    return count > 16 || !descriptor.known || !yAxisFits
+      ? new MapAxis(-1, descriptor, 1, [])
+      : new MapAxis(address, descriptor, count, values);
   }
 
+  get minValue() {
+    return this._minValue;
+  }
+  get maxValue() {
+    return this._maxValue;
+  }
+  get minRawValue() {
+    return this._minRawValue;
+  }
+  get maxRawValue() {
+    return this._maxRawValue;
+  }
   get isValid() {
     return this._isValid;
   }
@@ -82,9 +131,11 @@ export class Map {
     const { address, bytes, potentialSize } = this;
     const xAxis: MapAxis | null = this.analyzeAxis(
       address,
-      bytes.slice(address)
+      bytes.slice(address),
+      0,
+      potentialSize
     );
-    if (!xAxis) {
+    if (!xAxis || !xAxis.descriptor.known) {
       this._isValid = false;
       return null;
     }
@@ -93,17 +144,12 @@ export class Map {
     const mapSize = xAxis.totalSize + xAxis.count;
     const yAxisAddress = address + xAxis.totalSize;
 
-    if (mapSize < potentialSize) {
-      this.yAxis = this.analyzeAxis(
-        yAxisAddress,
-        bytes.slice(yAxisAddress, yAxisAddress + 14)
-      );
-    } else {
-      this.yAxis = new MapAxis(-1, null, 1, []);
-    }
-    if (this.xAxis.count < 3 || !this.yAxis) {
-      this._isValid = false;
-    }
+    this.yAxis = this.analyzeAxis(
+      yAxisAddress,
+      bytes.slice(yAxisAddress, yAxisAddress + 14),
+      mapSize,
+      potentialSize
+    );
   }
 
   private findData() {
@@ -118,6 +164,8 @@ export class Map {
       this.dataAddress,
       this.dataAddress + dataSize
     );
+    this._minRawValue = Math.min(...this.rawValues);
+    this._maxRawValue = Math.max(...this.rawValues);
     if (
       this.rawValues.filter((v, i, arr) => arr.indexOf(v) === i).length === 1
     ) {
@@ -125,45 +173,78 @@ export class Map {
       this._isValid = false;
     }
   }
+
+  private checkValues(values: number[]) {
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values),
+      avg: values.reduce((p, v) => p + v, 0) / values.length,
+    };
+  }
+
+  private fuelOrIgnition(prefix: string) {
+    const ignitionValues = this.checkValues(
+      this.rawValues.map(CIgnitionBTDC.converter)
+    );
+    const fuelValues = this.checkValues(this.rawValues.map(CAFR.converter));
+    this.custProps = {
+      ...this.custProps,
+      ignitionValues,
+      fuelValues,
+    };
+    if (ignitionValues.max < 60) {
+      this.values = this.rawValues.map(CIgnitionBTDC.converter);
+      this.name = `${prefix} Ignition (BTDC)`;
+      this.category = MapCategories.Ignition;
+    } else if (fuelValues.min > 8 && fuelValues.max <= 25) {
+      this.values = this.rawValues.map(CAFR.converter);
+      this.category = MapCategories.Injection;
+      this.name = `${prefix} Injection (AFR)`;
+    }
+  }
+
+  public custProps = null;
+
   private clasifyMap() {
     const xSize = this.xAxis.count;
     const ySize = this.yAxis?.count || 1;
-    const max = Math.max(...this.rawValues);
-    const min = Math.min(...this.rawValues);
-    let prefix = Math.min(...this.yAxis.values) < 40 ? "Low" : "High";
+    this._maxRawValue = Math.max(...this.rawValues);
+    this._minRawValue = Math.min(...this.rawValues);
 
     // Default unknown
     this.values = this.rawValues;
-    this.name = `? ${this.xAxis.descriptor?.name}`;
+    this.name = `${xSize}x${ySize} ${this.xAxis.descriptor.name}`;
     if (ySize > 1) {
-      this.name += ` vs ${this.yAxis.descriptor?.name}`;
+      this.name += ` vs ${this.yAxis.descriptor.name}`;
     }
 
     // Detect patterns
-    const around128Values = min >= 100 && max <= 150;
+    const around128Values = this.minRawValue >= 100 && this.maxRawValue <= 150;
     const RPMVsLoad = this.xAxis.isRPM && this.yAxis.isLoad;
-    const bigMap = xSize >= 12 && xSize < 16 && ySize >= 6 && ySize <= 16;
-    const wotMap = xSize >= 14;
+    const bigMap = xSize >= 12 && xSize <= 16 && ySize >= 6 && ySize <= 16;
+    const wotMap = xSize >= 16 && ySize === 1;
     const idleMap =
       this.xAxis.isCoolant &&
       xSize === 4 &&
-      (this.rawValues[0] === 120 || this.rawValues[0] === 110);
+      this.maxRawValue <= 120 &&
+      this.minRawValue >= 60;
 
-    if ((RPMVsLoad && bigMap) || wotMap) {
-      prefix = xSize >= 16 && ySize === 1 ? "WOT" : prefix;
-      if (max < 120) {
-        this.values = this.rawValues.map(CIgnitionBTDC.converter);
-        this.name = `${prefix} Ignition (BTDC)`;
-        this.category = MapCategories.Ignition;
-      } else if (min > 0 && max < 200) {
-        this.values = this.rawValues.map(CAFR.converter);
-        this.category = MapCategories.Injection;
-        this.name = `${prefix} Injection (AFR)`;
-      }
+    this.custProps = {
+      around128Values,
+      RPMVsLoad,
+      bigMap,
+      wotMap,
+      idleMap,
+    };
+    if (wotMap) {
+      this.fuelOrIgnition("WOT");
+    } else if (RPMVsLoad && bigMap && this.maxRawValue < 250) {
+      const partType = this.yAxis.minValue < 3 ? "Low " : "High ";
+      this.fuelOrIgnition(partType);
     } else if (idleMap) {
       this.category = MapCategories.Idle;
       this.name = `Idle speed`;
-    } else if (this.xAxis.isRPM && this.yAxis.isIAT && around128Values) {
+    } else if (this.xAxis.isRPM && this.yAxis?.isIAT && around128Values) {
       this.category = MapCategories.Injection;
       this.name = `Fuel Enrichment vs IAT`;
     } else if (this.xAxis.isSensor) {

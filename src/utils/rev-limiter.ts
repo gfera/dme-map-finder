@@ -55,5 +55,15 @@ export const findRevLimiter = (buffer: Uint8Array): Map[] => {
     map.values = [limiter1.toRPM];
     maps.push(map);
   }
+  if (limiter2) {
+    const map = new Map(limiter2.location, [limiter2.byte1], 1);
+    map.name = "Rev Limiter 2";
+    map.category = MapCategories.RevLimiter;
+    map.xAxis = new MapAxis(0, null, 1, []);
+    map.yAxis = new MapAxis(0, null, 1, []);
+    map.rawValues = [limiter2.byte1];
+    map.values = [limiter2.toRPM];
+    maps.push(map);
+  }
   return maps;
 };
