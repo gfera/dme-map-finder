@@ -14,6 +14,7 @@ export interface MapDescriptor {
   name: string;
   value: number;
   conversion?: (raw: number) => number;
+  converter?: UnitConverter;
   unit: string;
   known: boolean;
 }
@@ -23,15 +24,17 @@ const createDescriptor = (
   value: number,
   converter?: UnitConverter
 ): MapDescriptor => ({
-  name,
+  name: name || "Unknown",
   value,
+  converter,
   conversion: converter?.converter,
   unit: converter?.unit,
-  known: true,
+  known: !!name,
 });
 
 const allDescriptors = [
   createDescriptor("RPM", 0x3b, CRPM),
+  createDescriptor("Fuel Cut-off", 0x25),
   createDescriptor("Speed", 0xb8),
   createDescriptor("Fuel Enrich", 0xb0),
   createDescriptor("Idle Fuel Trim", 0x03),
@@ -53,8 +56,10 @@ const allDescriptors = [
   createDescriptor("IAC2", 0x49),
   createDescriptor("A/C Pressure", 0xc4),
   createDescriptor("Air Mass", 0xb3, CAirMass),
+  createDescriptor("Duty Cycle", 0x3e),
+  createDescriptor("Ign. Advance", 0x55),
 ];
 
 export const findDescriptor = (value: number): MapDescriptor =>
   allDescriptors.find((d) => d.value === value) ||
-  createDescriptor("Unknown", value);
+  createDescriptor(null, value);

@@ -17,7 +17,9 @@
       <h3><b>Checksum:</b>{{ checksumNew }}</h3>
       <h3><b>Current Checksum:</b>{{ checksumCurrent }}</h3>
     </div>
-    <h3 class="px-4 mb-0"><b>Maps</b></h3>
+    <h3 class="px-4 mb-0">
+      <b>Maps</b>
+    </h3>
     <div
       class="
         bg-gray-100
@@ -29,35 +31,25 @@
         dark:bg-gray-800 dark:border-gray-700
       "
     >
-      <AsideList v-for="group in groups" :key="group.name" :group="group" />
+      <AsideList
+        v-for="group in groups"
+        :key="group.name"
+        :group="(group as any)"
+      />
     </div>
   </aside>
 </template>
-<script lang="ts">
-import { computed, defineComponent } from "vue";
+<script lang="ts" setup>
+import { computed } from "vue";
 import { useMainStore } from "../store";
 import AsideList from "./AsideList.vue";
 
-export default defineComponent({
-  components: {
-    AsideList,
-  },
-  setup() {
-    const store = useMainStore();
+const store = useMainStore();
 
-    const maps = computed(() => store.maps);
-    const groups = computed(() => store.mapGroups);
-    const ecuNumber = computed(() => store.ecuNumber);
-    const checksumCurrent = computed(() => store.checksumCurrent);
-    const checksumNew = computed(() => store.checksumNew);
+const maps = computed(() => store.maps);
+const groups = computed(() => store.mapGroups);
+const ecuNumber = computed(() => store.ecuNumber);
+const checksumCurrent = computed(() => store.checksumCurrent);
+const checksumNew = computed(() => store.checksumNew);
 
-    return {
-      maps,
-      groups,
-      ecuNumber,
-      checksumCurrent,
-      checksumNew,
-    };
-  },
-});
 </script>

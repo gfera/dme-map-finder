@@ -19,63 +19,65 @@
       </div>
     </div>
     <div class="w-full overflow-auto mt-8">
-    <table class="w-full">
-      <tr v-for="(row, irow) in rows" :key="'r' + irow">
-        <td v-if="map.yAxis" class="border-r border-gray-400 border-solid">
-          <b>{{ map.yAxis.values[irow] }}{{ map.yAxis.descriptor?.unit }}</b>
-        </td>
-        <td v-for="(col, icol) in cols" :key="'c' + icol">
-          {{ getValue(irow, icol) }}
-        </td>
-      </tr>
-      <tr>
-        <td></td>
-        <td
-          v-for="(col, icol) in cols"
-          :key="'x' + icol"
-          class="border-t border-gray-400 border-solid"
+      <table class="w-full">
+        <tr
+          v-for="(row, irow) in rows"
+          :key="'r' + irow"
         >
-          <b>{{ map.xAxis.values[icol] }} {{ map.xAxis.descriptor?.unit }}</b>
-        </td>
-      </tr>
-    </table>
+          <td
+            v-if="map.yAxis"
+            class="border-r border-gray-400 border-solid"
+          >
+            <b>{{ map.yAxis.values[irow] }}{{ map.yAxis.descriptor?.unit }}</b>
+          </td>
+          <td
+            v-for="(col, icol) in cols"
+            :key="'c' + icol"
+          >
+            {{ getValue(irow, icol) }}
+          </td>
+        </tr>
+        <tr>
+          <td />
+          <td
+            v-for="(col, icol) in cols"
+            :key="'x' + icol"
+            class="border-t border-gray-400 border-solid"
+          >
+            <b>{{ map.xAxis.values[icol] }} {{ map.xAxis.descriptor?.unit }}</b>
+          </td>
+        </tr>
+      </table>
     </div>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent, PropType } from "vue";
-import { Map } from "../models/map";
+<script lang="ts" setup>
+import {  PropType } from "vue";
+import { EcuMap } from "../models/map";
 
-export default defineComponent({
-  props: {
-    map: {
-      type: Object as PropType<Map>,
-      required: true,
-    },
-  },
-  setup(props) {
-    const map = props.map;
-    const rows = map.yAxis?.count || 1;
-    const cols = map.xAxis?.count || 1;
-    const size = `${cols}x${rows}`;
-
-    const getValue = (row: number, col: number) => {
-      const pos = rows === 1 ? col : col * rows + row;
-      return map.values[pos];
-    };
-
-    const toHex = (value: number) => {
-      const hex = value.toString(16);
-      return hex.length === 1 ? `0${hex}` : hex;
-    };
-
-    return {
-      size,
-      rows,
-      cols,
-      toHex,
-      getValue,
-    };
+const props = defineProps({
+  map: {
+    type: Object as PropType<EcuMap>,
+    required: true,
   },
 });
+const rows = props.map.yAxis?.count || 1;
+const cols = props.map.xAxis?.count || 1;
+const size = `${cols}x${rows}`;
+
+const getValue = (row: number, col: number) => {
+  const pos = rows === 1 ? col : col * rows + row;
+  return props.map.values[pos];
+};
+
+const toHex = (value: number) => {
+  const hex = value.toString(16);
+  return hex.length === 1 ? `0${hex}` : hex;
+};
+
 </script>
+<style scoped>
+td:nth-child(odd) {
+  background-color: antiquewhite;
+}
+</style>

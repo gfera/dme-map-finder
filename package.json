@@ -3,22 +3,30 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "lint":"vue-tsc --noEmit",
+    "lint": "vue-tsc --noEmit",
     "build": "vite build",
     "serve": "vite preview"
   },
   "dependencies": {
     "@heroicons/vue": "^1.0.5",
-    "pinia": "^2.0.2",
-    "vue": "^3.2.16"
+    "pinia": "^2.0.21",
+    "tailwind": "^4.0.0",
+    "vue": "^3.3.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^1.9.3",
+    "@typescript-eslint/eslint-plugin": "^5.36.2",
+    "@vitejs/plugin-vue": "^3.1.0",
+    "@vue/eslint-config-typescript": "^11.0.0",
     "autoprefixer": "^10.3.7",
+    "eslint": "^8.23.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-vue": "^9.4.0",
     "postcss": "^8.3.11",
+    "prettier": "^2.7.1",
     "tailwindcss": "^2.2.17",
     "typescript": "^4.4.3",
-    "vite": "^2.6.4",
+    "vite": "^3.1.0",
     "vue-tsc": "^0.3.0"
   }
 }

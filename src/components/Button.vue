@@ -1,14 +1,8 @@
 <template>
-    <button class="rounded-xl px-4 py-2 bg-lightBlue-700 text-white">
-        <slot></slot>
-    </button>
+  <button class="rounded-xl px-4 py-2 bg-lightBlue-700 text-white disabled:bg-gray-500">
+    <slot />
+  </button>
 </template>
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script lang="ts" setup>
 
-export default defineComponent({
-    setup() {
-        
-    },
-})
 </script>

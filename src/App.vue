@@ -12,14 +12,21 @@
       dark:bg-gray-800 dark:text-warmGray-200
     "
   >
-    <h1 class="text-xl font-bold">Motronic Map Finder</h1>
-    <CButton class="ml-4" @click="fileRef.click()">Open file</CButton>
+    <h1 class="text-xl font-bold">
+      Motronic Map Finder
+    </h1>
+    <CButton
+      class="ml-4"
+      @click="fileRef.click()"
+    >
+      Open file
+    </CButton>
     <input
+      ref="fileRef"
       class="hidden"
       type="file"
-      ref="fileRef"
-      @change="fileSelect($event.target.files[0])"
-    />
+      @change="fileSelect($event)"
+    >
   </header>
   <main
     class="
@@ -32,59 +39,45 @@
     "
   >
     <Aside class="flex-grow-0" />
-    <div v-if="maps.length > 0" class="p-4 overflow-auto w-full">
-      <div class="w-full grid grid-cols-2 gap-4">
-        <Map v-for="map in maps" :key="map.address" :map="map" />
+    
+    <div
+      class="p-4 overflow-auto w-full flex flex-col items-center"
+    >
+      <XDF />
+      <div
+        v-if="maps.length > 0"
+        class="w-full grid grid-cols-1 auto-rows-min grid-rows-none xl:grid-cols-2 gap-4 mt-4 flex-grow"
+      >
+        <Map
+          v-for="map in maps"
+          :key="map.address"
+          :map="map"
+        />
       </div>
     </div>
   </main>
 </template>
-<script lang="ts">
-import { computed, defineComponent, ref, watch } from "@vue/runtime-core";
+<script lang="ts" setup>
+import { computed, ref } from "vue";
 
 import { useMainStore } from "./store";
 
-import MapComponent from "./components/Map.vue";
-import CButton from "./components/Button.vue";
-import Aside from "./components/Aside.vue";
+import Map from "@/components/Map.vue";
+import CButton from "@/components/Button.vue";
+import Aside from "@/components/Aside.vue";
+import { EcuMap } from "./models/map";
+import XDF from "@/components/xdf/Main.vue";
+const store = useMainStore();
 
-export default defineComponent({
-  components: {
-    Map: MapComponent,
-    CButton,
-    Aside,
-  },
-  setup() {
-    const store = useMainStore();
+const fileSelect = async (event:Event) => {
+  const file = (event.target as HTMLInputElement).files[0]
+  const buffer = await file.arrayBuffer();
+  store.loadFile({ name: file.name, buffer });
+};
+const maps = computed(() => store.openedMaps as EcuMap[]);
 
-    const files = [
-      "/bertone.bin",
-      "/m43b18_982.bin",
-      "/m43b18_661.bin",
-      "./m42b18_070.bin",
-    ];
+const fileRef= ref(null)
 
-    const loadFile = (filePath: string) => {
-      fetch(filePath)
-        .then((answer) => answer.arrayBuffer())
-        .then((buffer) => store.loadFile({ name: filePath, buffer }));
-    };
-
-    const fileSelect = async (file: File) => {
-      const buffer = await file.arrayBuffer();
-      store.loadFile({ name: file.name, buffer });
-    };
-    const maps = computed(() => store.openedMaps);
-    const mapGroups = computed(() => store.mapGroups);
-
-    return {
-      maps,
-      fileSelect,
-      fileRef: ref(null),
-      mapGroups,
-    };
-  },
-});
 </script>
 
 <style>

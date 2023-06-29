@@ -1,4 +1,4 @@
-import { Map, MapCategories, MapGroup } from "../models/map";
+import { EcuMap, MapCategories, MapGroup } from "../models/map";
 import { findPattern } from "./misc";
 
 /////////////////////////
@@ -25,14 +25,27 @@ export const getMapTablesAddress = (bytes: number[]) => {
 };
 
 export const extractMaps = (bytes: number[], addresses: number[]) => {
-  const maps: Map[] = [];
+  const maps: EcuMap[] = [];
   for (let i = 0, total = addresses.length; i < total; i++) {
     const nextMap = i + 1;
     const potentialMapSize =
       nextMap < total ? addresses[nextMap] - addresses[i] : Infinity;
 
-    const map = new Map(addresses[i], bytes, potentialMapSize);
-    if (map.isValid) maps.push(map);
+    const map = new EcuMap(addresses[i], bytes, potentialMapSize);
+    if (map.isValid) {
+      if (map.createAxisMaps) {
+        const axisMap = new EcuMap(
+          addresses[i],
+          bytes,
+          map.xAxis.count,
+          map.xAxis
+        );
+        axisMap.name = `[AXIS] ${map.name} - ${map.xAxis.descriptor.name}`;
+        console.log(axisMap.name);
+        maps.push(axisMap);
+      }
+      maps.push(map);
+    }
   }
 
   return maps;
@@ -52,7 +65,7 @@ export const getChecksum = (buffer: Uint8Array) => {
   return buffer[0x1f00].toString(16) + buffer[0x1f01].toString(16);
 };
 export const calcChecksum8Bit = (buffer: Uint8Array) => {
-  // 0x0000 - 0x1FFh chk1
+  // 0x0000 - 0x1EFF chk1
   // 0x2000 - 0x7fff chk2
   // 0x1F00 Chk location
   // Offset 0xB51F
@@ -61,7 +74,8 @@ export const calcChecksum8Bit = (buffer: Uint8Array) => {
   const chk1 = buffer.subarray(0x0000, 0x1eff + 1).reduce((p, c) => p + c, 0);
   const chk2 = buffer.subarray(0x2000, 0x7fff + 1).reduce((p, c) => p + c, 0);
   const chkOffset = 0xb51f;
-  return (chk1 + chk2 + chkOffset).toString(16).substr(-4);
+  const value = (chk1 + chk2 + chkOffset).toString(16);
+  return value.substring(value.length - 4);
 };
 
 export const mapGroups: MapGroup[] = [

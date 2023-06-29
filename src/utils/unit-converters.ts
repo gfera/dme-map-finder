@@ -22,8 +22,9 @@ export const CLoad = new UnitConverter(
 
 export const CTPS = new UnitConverter(
   "TPS",
-  (v: number) => v * 0.41667 - 5.34,
-  "(X*0.41667 - 5.34)"
+  (v: number) => Math.floor(v * 0.0433546 * 100) / 100,
+  "(X*0.0433546)",
+  "v"
 );
 
 export const CRPM = new UnitConverter(
@@ -64,3 +65,5 @@ export const CAirMass = new UnitConverter(
   "X*.02",
   "Kg/h"
 );
+
+export const CBase = new UnitConverter("Unknown", (v: number) => v, "X", "?");

@@ -1,4 +1,4 @@
-import { Map, MapAxis, MapCategories } from "../models/map";
+import { EcuMap, MapAxis, MapCategories } from "../models/map";
 import { findPattern } from "./misc";
 
 const LimiterConversionFactor = 7500000;
@@ -21,9 +21,9 @@ export class RevLimiter {
   }
 }
 
-export const findRevLimiter = (buffer: Uint8Array): Map[] => {
+export const findRevLimiter = (buffer: Uint8Array): EcuMap[] => {
   // Pre limiter pattern: ffff020101[????][RPM][03]
-  const maps: Map[] = [];
+  const maps: EcuMap[] = [];
   const bytes = [0xff, 0xff, 0x02, 0x01, 0x01];
   const location = findPattern(buffer, bytes);
   const firstLimiter = location > 0 ? location + 7 : -1;
@@ -46,7 +46,7 @@ export const findRevLimiter = (buffer: Uint8Array): Map[] => {
       )
     : null;
   if (limiter1) {
-    const map = new Map(limiter1.location, [limiter1.byte1], 1);
+    const map = new EcuMap(limiter1.location, [limiter1.byte1], 1);
     map.name = "Rev Limiter 1";
     map.category = MapCategories.RevLimiter;
     map.xAxis = new MapAxis(0, null, 1, []);
@@ -56,7 +56,7 @@ export const findRevLimiter = (buffer: Uint8Array): Map[] => {
     maps.push(map);
   }
   if (limiter2) {
-    const map = new Map(limiter2.location, [limiter2.byte1], 1);
+    const map = new EcuMap(limiter2.location, [limiter2.byte1], 1);
     map.name = "Rev Limiter 2";
     map.category = MapCategories.RevLimiter;
     map.xAxis = new MapAxis(0, null, 1, []);

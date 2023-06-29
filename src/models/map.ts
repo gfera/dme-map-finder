@@ -1,13 +1,13 @@
 import { findDescriptor, MapDescriptor } from "../utils/map-descriptors";
-import { CAFR, CIgnitionBTDC } from "../utils/unit-converters";
+import { CAFR, CBase, CIgnitionBTDC } from "../utils/unit-converters";
 
 export class MapAxis {
   public values!: number[];
   public allValues!: number[];
-  private _minRawValue: number = 0;
-  private _maxRawValue: number = 0;
-  private _minValue: number = 0;
-  private _maxValue: number = 0;
+  private _minRawValue = 0;
+  private _maxRawValue = 0;
+  private _minValue = 0;
+  private _maxValue = 0;
   constructor(
     public address: number,
     public descriptor: MapDescriptor | null,
@@ -18,6 +18,9 @@ export class MapAxis {
   }
   get totalSize() {
     return this.count > 1 ? this.count + 2 : 0;
+  }
+  get size() {
+    return this.count;
   }
   get isRPM() {
     return this.descriptor?.name === "RPM";
@@ -31,9 +34,16 @@ export class MapAxis {
   get isIAT() {
     return this.descriptor?.name === "IAT";
   }
+  get isTPS() {
+    return this.descriptor?.name === "TPS";
+  }
   get isSensor() {
     const str = this.descriptor?.name.toLowerCase() || "";
     return str.indexOf("linearization") >= 0 || str.indexOf("constant") >= 0;
+  }
+  get addressString() {
+    const valStr = this.address.toString(16);
+    return "0x" + valStr.padStart(4, "0");
   }
 
   private calcValues() {
@@ -67,28 +77,55 @@ export class MapAxis {
   }
 }
 
-export class Map {
-  public dataAddress: number = 0;
+export class EcuMap {
+  public dataAddress = 0;
   public xAxis: MapAxis;
   public yAxis: MapAxis;
   public rawValues: number[] = [];
   public values: number[] = [];
+  public converter = CBase;
+  public createAxisMaps = false;
   //
-  private _minRawValue: number = 0;
-  private _maxRawValue: number = 0;
-  private _minValue: number = 0;
-  private _maxValue: number = 0;
+  private _minRawValue = 0;
+  private _maxRawValue = 0;
+  private _minValue = 0;
+  private _maxValue = 0;
   //
 
-  public name: string = "Unknown";
+  public name = "Unknown";
   public category: MapCategories = MapCategories.Unknown;
-  private _isValid: boolean = true;
+  private _isValid = true;
 
   constructor(
     public address: number,
     public bytes: number[],
-    private potentialSize: number
+    private potentialSize: number,
+    private baseAxisMap: MapAxis = null
   ) {
+    if (this.baseAxisMap) {
+      this.initAxis();
+    } else {
+      this.init();
+    }
+  }
+
+  private initAxis() {
+    const { bytes, address, potentialSize, baseAxisMap } = this;
+    const descriptor = findDescriptor(0);
+    const values = new Array(potentialSize).fill(0).map((v, i) => i);
+    this.xAxis = new MapAxis(address, descriptor, this.potentialSize, values);
+    this.yAxis = new MapAxis(address, descriptor, 1, []);
+    this.dataAddress = address;
+    this.rawValues = bytes.slice(
+      this.dataAddress,
+      this.dataAddress + potentialSize
+    );
+    this._minRawValue = Math.min(...this.rawValues);
+    this._maxRawValue = Math.max(...this.rawValues);
+    this.converter = baseAxisMap.descriptor.converter;
+  }
+
+  private init() {
     this.findAxis();
     if (this.isValid) {
       this.findData();
@@ -125,6 +162,15 @@ export class Map {
   }
   get isValid() {
     return this._isValid;
+  }
+  get addressString() {
+    const valStr = this.address.toString(16);
+    return "0x" + valStr.padStart(4, "0");
+  }
+
+  get dataAddressString() {
+    const valStr = this.dataAddress.toString(16);
+    return "0x" + valStr.padStart(4, "0");
   }
 
   private findAxis() {
@@ -182,25 +228,34 @@ export class Map {
     };
   }
 
-  private fuelOrIgnition(prefix: string) {
-    const ignitionValues = this.checkValues(
-      this.rawValues.map(CIgnitionBTDC.converter)
-    );
-    const fuelValues = this.checkValues(this.rawValues.map(CAFR.converter));
-    this.custProps = {
-      ...this.custProps,
-      ignitionValues,
-      fuelValues,
+  private couldBeIgnition() {
+    const values = this.rawValues.map(CIgnitionBTDC.converter);
+    const { min, max } = this.checkValues(values);
+    return {
+      is: min > -6 && max < 60 && values.length > 2,
+      values,
     };
-    if (ignitionValues.max < 60) {
-      this.values = this.rawValues.map(CIgnitionBTDC.converter);
-      this.name = `${prefix} Ignition (BTDC)`;
-      this.category = MapCategories.Ignition;
-    } else if (fuelValues.min > 8 && fuelValues.max <= 25) {
-      this.values = this.rawValues.map(CAFR.converter);
-      this.category = MapCategories.Injection;
-      this.name = `${prefix} Injection (AFR)`;
-    }
+  }
+
+  private couldBeFuel() {
+    const values = this.rawValues.map(CAFR.converter);
+    const { min, max } = this.checkValues(values);
+    return {
+      is: min >= 8 && max <= 25 && values.length > 2,
+      values,
+    };
+  }
+  private setAsIgnitionMap(prefix: string) {
+    this.converter = CIgnitionBTDC;
+    this.values = this.rawValues.map(CIgnitionBTDC.converter);
+    this.name = `${prefix} Ignition (BTDC)`;
+    this.category = MapCategories.Ignition;
+  }
+  private setAsFuelMap(prefix: string) {
+    this.converter = CAFR;
+    this.values = this.rawValues.map(CAFR.converter);
+    this.category = MapCategories.Injection;
+    this.name = `${prefix} Injection (AFR)`;
   }
 
   public custProps = null;
@@ -219,34 +274,43 @@ export class Map {
     }
 
     // Detect patterns
-    const around128Values = this.minRawValue >= 100 && this.maxRawValue <= 150;
     const RPMVsLoad = this.xAxis.isRPM && this.yAxis.isLoad;
+    const couldBeIgnition = this.couldBeIgnition();
+    const couldBeFuel = this.couldBeFuel();
     const bigMap = xSize >= 12 && xSize <= 16 && ySize >= 6 && ySize <= 16;
     const wotMap = xSize >= 16 && ySize === 1;
     const idleMap =
       this.xAxis.isCoolant &&
       xSize === 4 &&
-      this.maxRawValue <= 120 &&
+      this.maxRawValue <= 150 &&
       this.minRawValue >= 60;
 
-    this.custProps = {
-      around128Values,
-      RPMVsLoad,
-      bigMap,
-      wotMap,
-      idleMap,
-    };
-    if (wotMap) {
-      this.fuelOrIgnition("WOT");
+    if (wotMap && !this.baseAxisMap) {
+      if (couldBeIgnition.is) {
+        this.setAsIgnitionMap("WOT");
+      } else if (couldBeFuel.is) {
+        this.setAsFuelMap("WOT");
+      }
+      if (this.xAxis.descriptor.known) {
+        this.createAxisMaps = true;
+      }
     } else if (RPMVsLoad && bigMap && this.maxRawValue < 250) {
       const partType = this.yAxis.minValue < 3 ? "Low " : "High ";
-      this.fuelOrIgnition(partType);
+      if (couldBeIgnition.is) {
+        this.setAsIgnitionMap(partType);
+      } else if (couldBeFuel.is) {
+        this.setAsFuelMap(partType);
+      }
+      this.createAxisMaps = true;
     } else if (idleMap) {
       this.category = MapCategories.Idle;
       this.name = `Idle speed`;
-    } else if (this.xAxis.isRPM && this.yAxis?.isIAT && around128Values) {
-      this.category = MapCategories.Injection;
+    } else if (this.xAxis.isRPM && this.yAxis?.isIAT && couldBeFuel.is) {
+      this.setAsFuelMap("");
       this.name = `Fuel Enrichment vs IAT`;
+    } else if (this.xAxis.isRPM && this.yAxis?.descriptor.name === "Volts") {
+      this.category = MapCategories.Ignition;
+      this.name = `Ignition Dwell`;
     } else if (this.xAxis.isSensor) {
       this.category = MapCategories.Sensors;
     }
@@ -254,7 +318,7 @@ export class Map {
 }
 
 export interface AsideMap {
-  map: Map;
+  map: EcuMap;
   opened: boolean;
 }
 

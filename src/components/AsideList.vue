@@ -1,5 +1,8 @@
 <template>
-  <div v-if="group" class="mb-2">
+  <div
+    v-if="group"
+    class="mb-2"
+  >
     <div
       class="
         items-center
@@ -17,13 +20,16 @@
         :class="{ 'rotate-180': !collapse }"
       />
     </div>
-    <ul v-if="!collapse" class="mb-2">
+    <ul
+      v-if="!collapse"
+      class="mb-2"
+    >
       <li
+        v-for="item in items"
+        :key="item.map.addressString"
         class="cursor-pointer pl-4 hover:bg-green-300 dark:hover:bg-green-900 flex flex-row justify-between"
-        v-for="item in group.items"
-        :key="item.map.address"
-        @click="toggleMap(item)"
         :class="{ 'bg-green-300 dark:bg-green-900': item.opened }"
+        @click="toggleMap(item)"
       >
         {{ item.map.name }}
         <ChevronDownIcon
@@ -34,26 +40,29 @@
     </ul>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent, PropType, ref } from "vue";
+<script lang="ts" setup>
+import { PropType, computed, ref } from "vue";
 import { useMainStore } from "../store";
 
 import { ChevronDownIcon } from "@heroicons/vue/solid";
 import { AsideMap, MapGroup } from "../models/map";
+import { mapGroups } from "@/utils/map-base";
 
-export default defineComponent({
-  components: {
-    ChevronDownIcon,
-  },
-  props: {
-    group: { type: Object as PropType<MapGroup>, required: true },
-  },
-  setup() {
-    const store = useMainStore();
-    const toggleMap = (item: AsideMap) => store.toggleMap(item);
-    const collapse = ref(true);
-    const toggleCollapse = () => (collapse.value = !collapse.value);
-    return { toggleMap, collapse, toggleCollapse };
-  },
-});
+const props = defineProps({
+  group: { type: Object as PropType<MapGroup>, required: true },
+})
+
+const items = computed(()=>{
+  console.log(props.group)
+  return props.group.items
+})
+
+const store = useMainStore();
+const toggleMap = (item: AsideMap) => {
+  store.toggleMap(item)
+
+};
+const collapse = ref(true);
+const toggleCollapse = () => (collapse.value = !collapse.value);
+
 </script>
