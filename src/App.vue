@@ -43,7 +43,6 @@
     <div
       class="p-4 overflow-auto w-full flex flex-col items-center"
     >
-      <XDF />
       <div
         v-if="maps.length > 0"
         class="w-full grid grid-cols-1 auto-rows-min grid-rows-none xl:grid-cols-2 gap-4 mt-4 flex-grow"
@@ -66,7 +65,6 @@ import Map from "@/components/Map.vue";
 import CButton from "@/components/Button.vue";
 import Aside from "@/components/Aside.vue";
 import { EcuMap } from "./models/map";
-import XDF from "@/components/xdf/Main.vue";
 const store = useMainStore();
 
 const fileSelect = async (event:Event) => {

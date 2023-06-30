@@ -61,7 +61,7 @@ export const useMainStore = defineStore("main", () => {
     item.opened = !item.opened;
     const idx = maps.indexOf(item.map);
     if (idx === -1) {
-      maps.push(item.map);
+      maps.unshift(item.map);
     } else {
       maps.splice(idx, 1);
     }

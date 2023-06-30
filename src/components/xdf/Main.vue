@@ -49,8 +49,8 @@
   </div>
   
   <CButton
-    class="ml-4"
-    :disabed="maps.length===0"
+    v-if="maps.length>0"
+    class="mt-4 w-full"
     @click="generateXDF()"
   >
     Downlad XDF
@@ -74,9 +74,11 @@ const generateXDF = () => {
     return;
   }
 
+  
+
   const element = document.createElement('a');
   element.setAttribute('href', 'data:text/plain;charset=latin-1,' + encodeURIComponent(html.value.innerHTML));
-  element.setAttribute('download', 'sample.xdf');
+  element.setAttribute('download', `${store.loadedBin.name}.xdf`);
 
   element.style.display = 'none';
   document.body.appendChild(element);

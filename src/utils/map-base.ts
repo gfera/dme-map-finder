@@ -41,7 +41,7 @@ export const extractMaps = (bytes: number[], addresses: number[]) => {
           map.xAxis
         );
         axisMap.name = `[AXIS] ${map.name} - ${map.xAxis.descriptor.name}`;
-        console.log(axisMap.name);
+        axisMap.category = map.category;
         maps.push(axisMap);
       }
       maps.push(map);
@@ -102,6 +102,11 @@ export const mapGroups: MapGroup[] = [
   {
     name: "Rev Limiter",
     category: MapCategories.RevLimiter,
+    items: [],
+  },
+  {
+    name: "Map Axis",
+    category: MapCategories.MapAxis,
     items: [],
   },
   {

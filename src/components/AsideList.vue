@@ -31,7 +31,7 @@
         :class="{ 'bg-green-300 dark:bg-green-900': item.opened }"
         @click="toggleMap(item)"
       >
-        {{ item.map.name }}
+        <span class="truncate">{{ item.map.name }}</span>
         <ChevronDownIcon
           class="transform -rotate-90 w-4 inline opacity-0 transition-opacity"
           :class="{ 'opacity-100': item.opened }"
@@ -46,7 +46,6 @@ import { useMainStore } from "../store";
 
 import { ChevronDownIcon } from "@heroicons/vue/solid";
 import { AsideMap, MapGroup } from "../models/map";
-import { mapGroups } from "@/utils/map-base";
 
 const props = defineProps({
   group: { type: Object as PropType<MapGroup>, required: true },

@@ -1,6 +1,12 @@
 <template>
   <div class="p-4 shadow-md bg-white rounded-md dark:bg-gray-700">
-    <div class="w-full">
+    <div class="w-full relative">
+      <button
+        class="absolute top-0 right-0"
+        @click="close"
+      >
+        X
+      </button>
       <h1 class="text-xl">
         <b>{{ map.name }}</b>
       </h1>
@@ -53,7 +59,8 @@
 </template>
 <script lang="ts" setup>
 import {  PropType } from "vue";
-import { EcuMap } from "../models/map";
+import { AsideMap, EcuMap } from "../models/map";
+import { useMainStore } from "@/store";
 
 const props = defineProps({
   map: {
@@ -74,6 +81,15 @@ const toHex = (value: number) => {
   const hex = value.toString(16);
   return hex.length === 1 ? `0${hex}` : hex;
 };
+
+const store = useMainStore();
+const close = ()=>{
+  const sideMap = store.mapGroups.map(mg=>mg.items).flat().find(am=>am.map===props.map) as AsideMap;
+  console.log(sideMap)
+  if(sideMap){
+    store.toggleMap(sideMap)
+  }
+}
 
 </script>
 <style scoped>

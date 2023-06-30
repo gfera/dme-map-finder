@@ -1,7 +1,8 @@
 <template>
   <aside
     class="
-      w-60
+      w-full
+      max-w-xl
       flex-shrink-0
       h-full
       shadow-2xl
@@ -16,6 +17,7 @@
       <h3><b>ECU:</b>{{ ecuNumber }}</h3>
       <h3><b>Checksum:</b>{{ checksumNew }}</h3>
       <h3><b>Current Checksum:</b>{{ checksumCurrent }}</h3>
+      <XDF />
     </div>
     <h3 class="px-4 mb-0">
       <b>Maps</b>
@@ -43,6 +45,7 @@
 import { computed } from "vue";
 import { useMainStore } from "../store";
 import AsideList from "./AsideList.vue";
+import XDF from "@/components/xdf/Main.vue";
 
 const store = useMainStore();
 

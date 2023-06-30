@@ -10,8 +10,8 @@
     />
     <CATEGORYMEM
       v-if="isAxis"
-      index="0"
-      :category="10"
+      index="1"
+      :category="MapCategories.MapAxis+1"
     />
     <XDFAXIS
       id="x"
@@ -55,12 +55,22 @@
       <datatype>0</datatype>
       <unittype>0</unittype>
       <DALINK index="0" />
-      <LABEL
-        v-for="(lbl,index) in map.yAxis.values"
-        :key="lbl"
-        :index="index"
-        :value="lbl"
-      />
+      <template v-if="map.baseAxisMap">
+        <LABEL
+          v-for="(lbl,index) in map.yAxis.values"
+          :key="lbl"
+          :index="index"
+          :value="index+1"
+        />
+      </template>
+      <template v-else>
+        <LABEL
+          v-for="(lbl,index) in map.yAxis.values"
+          :key="lbl"
+          :index="index"
+          :value="lbl"
+        />
+      </template>
       <MATH equation="X">
         <VAR id="X" />
       </MATH>
@@ -79,15 +89,37 @@
       <min>{{ map.minValue }}</min>
       <max>{{ map.maxValue }}</max>
       <outputtype>1</outputtype>
-      <MATH :equation="map.converter.xdfconverter">
+      <MATH
+        v-if="!map.baseAxisMap"
+        :equation="map.converter.xdfconverter"
+      >
         <VAR id="X" />
       </MATH>
+      <template v-if="map.baseAxisMap">
+        <MATH equation="X">
+          <VAR id="X" />
+        </MATH>
+        <MATH
+          row="1"
+          :equation="`CELL(ROW();COL()+1;FALSE)-${map.converter.xdfconverter}`"
+        >
+          <VAR id="X" />
+        </MATH>
+        <MATH
+          row="1"
+          :col="map.rawValues.length"
+          :equation="`(${map.converter.converter(256)}-${map.converter.xdfconverter})`"
+        >
+          <VAR id="X" />
+        </MATH>
+      </template>
     </XDFAXIS>
   </XDFTABLE>
 </template>
 <script setup lang="ts">
-import { PropType, computed } from 'vue';
+import { PropType } from 'vue';
 import { EcuMap } from '../../models/map';
+import { MapCategories } from '../../models/map';
  defineProps({
   map: {
     type: Object as PropType<EcuMap>,

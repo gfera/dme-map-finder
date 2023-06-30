@@ -1,5 +1,10 @@
 import { findDescriptor, MapDescriptor } from "../utils/map-descriptors";
-import { CAFR, CBase, CIgnitionBTDC } from "../utils/unit-converters";
+import {
+  CAFR,
+  CBase,
+  CIgnitionBTDC,
+  UnitConverter,
+} from "../utils/unit-converters";
 
 export class MapAxis {
   public values!: number[];
@@ -48,9 +53,10 @@ export class MapAxis {
 
   private calcValues() {
     this.values = this.rawValues.map((_, i) => {
-      return this.rawValues.reduceRight((prev, next, idx) => {
-        return idx >= i ? prev - next : prev;
-      }, 256);
+      return this.rawValues.reduceRight(
+        (prev, next, idx) => (idx >= i ? prev - next : prev),
+        256
+      );
     });
     if (!this.descriptor) return;
     const { conversion } = this.descriptor;
@@ -84,6 +90,7 @@ export class EcuMap {
   public rawValues: number[] = [];
   public values: number[] = [];
   public converter = CBase;
+  public converters!: UnitConverter[];
   public createAxisMaps = false;
   //
   private _minRawValue = 0;
@@ -100,7 +107,7 @@ export class EcuMap {
     public address: number,
     public bytes: number[],
     private potentialSize: number,
-    private baseAxisMap: MapAxis = null
+    public baseAxisMap: MapAxis = null
   ) {
     if (this.baseAxisMap) {
       this.initAxis();
@@ -110,19 +117,23 @@ export class EcuMap {
   }
 
   private initAxis() {
-    const { bytes, address, potentialSize, baseAxisMap } = this;
-    const descriptor = findDescriptor(0);
+    const { address, potentialSize, baseAxisMap } = this;
+    const dummyDescriptor = findDescriptor(0);
+    const converter = baseAxisMap.descriptor.converter;
     const values = new Array(potentialSize).fill(0).map((v, i) => i);
-    this.xAxis = new MapAxis(address, descriptor, this.potentialSize, values);
-    this.yAxis = new MapAxis(address, descriptor, 1, []);
-    this.dataAddress = address;
-    this.rawValues = bytes.slice(
-      this.dataAddress,
-      this.dataAddress + potentialSize
+    this.xAxis = new MapAxis(
+      address,
+      dummyDescriptor,
+      this.potentialSize,
+      values
     );
-    this._minRawValue = Math.min(...this.rawValues);
-    this._maxRawValue = Math.max(...this.rawValues);
-    this.converter = baseAxisMap.descriptor.converter;
+    this.yAxis = new MapAxis(address, dummyDescriptor, 1, []);
+    this.dataAddress = baseAxisMap.address + 2;
+    this.rawValues = baseAxisMap.rawValues;
+    this.values = baseAxisMap.values;
+    this._minRawValue = baseAxisMap.minRawValue;
+    this._maxRawValue = baseAxisMap.maxRawValue;
+    this.converter = converter;
   }
 
   private init() {
@@ -334,5 +345,6 @@ export enum MapCategories {
   Injection,
   Idle,
   RevLimiter,
+  MapAxis,
   Unknown,
 }
