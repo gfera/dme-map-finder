@@ -6,3 +6,7 @@ export const findPattern = (buffer: Uint8Array, bytes: number[], start = 0) => {
   );
   return idx === -1 ? idx : idx + start;
 };
+
+// Cubic Inches = RPM / 16.38706
+// CFM = (Cubic Inches * RPM * Vol Efficiency) / 3456
+// Liters x Min = CFM * 28.31658

@@ -51,10 +51,7 @@ const props = defineProps({
   group: { type: Object as PropType<MapGroup>, required: true },
 })
 
-const items = computed(()=>{
-  console.log(props.group)
-  return props.group.items
-})
+const items = computed(()=>props.group.items)
 
 const store = useMainStore();
 const toggleMap = (item: AsideMap) => {

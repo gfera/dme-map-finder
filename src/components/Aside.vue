@@ -10,6 +10,8 @@
       flex flex-col
       bg-white
       dark:bg-gray-700
+      resize-x
+      overflow-hidden
     "
   >
     <div class="p-4 flex-shrink">

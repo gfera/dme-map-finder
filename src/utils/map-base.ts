@@ -34,15 +34,27 @@ export const extractMaps = (bytes: number[], addresses: number[]) => {
     const map = new EcuMap(addresses[i], bytes, potentialMapSize);
     if (map.isValid) {
       if (map.createAxisMaps) {
-        const axisMap = new EcuMap(
+        const axisMapX = new EcuMap(
           addresses[i],
           bytes,
           map.xAxis.count,
           map.xAxis
         );
-        axisMap.name = `[AXIS] ${map.name} - ${map.xAxis.descriptor.name}`;
-        axisMap.category = map.category;
-        maps.push(axisMap);
+        axisMapX.name = `[AXIS] ${map.name} - ${map.xAxis.descriptor.name}`;
+        axisMapX.category = map.category;
+        maps.push(axisMapX);
+
+        if (map.yAxis.values.length > 0) {
+          const axisMapY = new EcuMap(
+            addresses[i],
+            bytes,
+            map.yAxis.count,
+            map.yAxis
+          );
+          axisMapY.name = `[AXIS] ${map.name} - ${map.yAxis.descriptor.name}`;
+          axisMapY.category = map.category;
+          maps.push(axisMapY);
+        }
       }
       maps.push(map);
     }

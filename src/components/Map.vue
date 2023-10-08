@@ -85,7 +85,6 @@ const toHex = (value: number) => {
 const store = useMainStore();
 const close = ()=>{
   const sideMap = store.mapGroups.map(mg=>mg.items).flat().find(am=>am.map===props.map) as AsideMap;
-  console.log(sideMap)
   if(sideMap){
     store.toggleMap(sideMap)
   }
