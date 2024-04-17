@@ -2,10 +2,11 @@ import { EcuMap, MapCategories, MapGroup } from "../models/map";
 import { findPattern } from "./misc";
 
 /////////////////////////
-const mapTablesStart = 0x4590;
+// const mapTablesStart = 0x4590;
+const mapTablesStart = 0x45d0;
 
 export const getMapTablesAddress = (bytes: number[]) => {
-  const buffer = bytes.slice(mapTablesStart, mapTablesStart + 0x600);
+  const buffer = bytes.slice(mapTablesStart, mapTablesStart + 0x400);
   const addresses = buffer.reduce((prev: number[], curr, position) => {
     const even = position % 2 === 0;
     if (!even) {
@@ -29,9 +30,10 @@ export const extractMaps = (bytes: number[], addresses: number[]) => {
   for (let i = 0, total = addresses.length; i < total; i++) {
     const nextMap = i + 1;
     const potentialMapSize =
-      nextMap < total ? addresses[nextMap] - addresses[i] : Infinity;
+      nextMap < total ? 2 + addresses[nextMap] - addresses[i] : Infinity;
 
     const map = new EcuMap(addresses[i], bytes, potentialMapSize);
+
     if (map.isValid) {
       if (map.createAxisMaps) {
         const axisMapX = new EcuMap(
@@ -74,8 +76,12 @@ export const findPartNumber = (buffer: Uint8Array) => {
 };
 
 export const getChecksum = (buffer: Uint8Array) => {
-  return buffer[0x1f00].toString(16) + buffer[0x1f01].toString(16);
+  return (
+    buffer[0x1f00].toString(16).padStart(2, "0") +
+    buffer[0x1f01].toString(16).padStart(2, "0")
+  );
 };
+
 export const calcChecksum8Bit = (buffer: Uint8Array) => {
   // 0x0000 - 0x1EFF chk1
   // 0x2000 - 0x7fff chk2
@@ -94,6 +100,11 @@ export const mapGroups: MapGroup[] = [
   {
     name: "Sensors",
     category: MapCategories.Sensors,
+    items: [],
+  },
+  {
+    name: "AFM",
+    category: MapCategories.AFM,
     items: [],
   },
   {

@@ -1,10 +1,18 @@
-import { createPinia } from "pinia";
 import { createApp } from "vue";
+import { createPinia } from "pinia";
+import PrimeVue from "primevue/config";
+import WindTheme from "@/themes/wind";
 import App from "./App.vue";
-import "./index.css";
+
+import "./themes/variables.css";
+import "./themes/index.css";
 
 const app = createApp(App);
 app.use(createPinia());
+app.use(PrimeVue, {
+  unstyled: true,
+  pt: WindTheme,
+});
 
 const FORBIDDEN_WARNS = ["Failed to resolve component"];
 

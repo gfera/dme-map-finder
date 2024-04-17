@@ -48,23 +48,24 @@
     </XDFFORMAT>
   </div>
   
-  <CButton
+  <Button
     v-if="maps.length>0"
     class="mt-4 w-full"
     @click="generateXDF()"
   >
     Downlad XDF
-  </CButton>
+  </Button>
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useMainStore } from '@/store';
-import CButton from "@/components/Button.vue";
 import XDFMap from '@/components/xdf/Map.vue';
+import { EcuMap } from '@/models/map';
+import Button from 'primevue/button';
 
 
 const store = useMainStore()
-const maps = computed(() => store.maps);
+const maps = computed(() => store.maps as EcuMap[]);
 const groups = computed(() => store.mapGroups);
 const html = ref()
 

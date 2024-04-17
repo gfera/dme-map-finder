@@ -10,6 +10,7 @@ import {
   mapGroups,
 } from "../utils/map-base";
 import { findRevLimiter, RevLimiter } from "../utils/rev-limiter";
+import { findAFMMaps } from "@/utils/afm";
 
 interface LoadedFile {
   name: string;
@@ -41,8 +42,10 @@ export const useMainStore = defineStore("main", () => {
     checksumCurrent.value = getChecksum(buffer8Bit);
     checksumNew.value = calcChecksum8Bit(buffer8Bit);
     addresses.value = getMapTablesAddress(loadedBin.value.bytes);
+
     maps.value = extractMaps(loadedBin.value.bytes, addresses.value);
     maps.value.push(...findRevLimiter(buffer8Bit));
+    maps.value.push(...findAFMMaps(buffer8Bit, loadedBin.value.bytes));
     openedMaps.value = [];
     groups.value.forEach((group) => {
       group.items.splice(0, group.items.length);
@@ -52,6 +55,9 @@ export const useMainStore = defineStore("main", () => {
           opened: false,
           map: m,
         }));
+
+      // list.sort((a, b) => a.map.name.localeCompare(b.map.name));
+
       group.items.push(...list);
     });
   };

@@ -93,6 +93,7 @@ export class EcuMap {
   public converters!: UnitConverter[];
   public createAxisMaps = false;
   //
+  private _debug = false;
   private _minRawValue = 0;
   private _maxRawValue = 0;
   private _minValue = 0;
@@ -109,6 +110,9 @@ export class EcuMap {
     private potentialSize: number,
     public baseAxisMap: MapAxis = null
   ) {
+    if (address === 0x5abb) {
+      this._debug = true;
+    }
     if (this.baseAxisMap) {
       this.initAxis();
     } else {
@@ -141,6 +145,8 @@ export class EcuMap {
     if (this.isValid) {
       this.findData();
       this.clasifyMap();
+    } else {
+      this._debug && console.log("Invalid map");
     }
   }
 
@@ -154,7 +160,16 @@ export class EcuMap {
     const count = array[1];
     const values = array.slice(2, count + 2);
     const yAxisFits = currMapSize < potentialSize;
-    return count > 16 || !descriptor.known || !yAxisFits
+
+    this._debug &&
+      console.log("Analyzing axis", {
+        descriptor,
+        count,
+        values,
+        potentialSize,
+      });
+
+    return count > 32 || !descriptor.known || !yAxisFits
       ? new MapAxis(-1, descriptor, 1, [])
       : new MapAxis(address, descriptor, count, values);
   }
@@ -185,6 +200,7 @@ export class EcuMap {
   }
 
   private findAxis() {
+    this._debug && console.log("Finding axis");
     const { address, bytes, potentialSize } = this;
     const xAxis: MapAxis | null = this.analyzeAxis(
       address,
@@ -193,10 +209,12 @@ export class EcuMap {
       potentialSize
     );
     if (!xAxis || !xAxis.descriptor.known) {
+      this._debug && console.log("No X Axis, invalid map");
       this._isValid = false;
       return null;
     }
     this.xAxis = xAxis;
+    this._debug && console.log("X Axis found", this.xAxis);
 
     const mapSize = xAxis.totalSize + xAxis.count;
     const yAxisAddress = address + xAxis.totalSize;
@@ -227,7 +245,7 @@ export class EcuMap {
       this.rawValues.filter((v, i, arr) => arr.indexOf(v) === i).length === 1
     ) {
       // Means all values are equal. Discard.
-      this._isValid = false;
+      // this._isValid = false;
     }
   }
 
@@ -259,14 +277,14 @@ export class EcuMap {
   private setAsIgnitionMap(prefix: string) {
     this.converter = CIgnitionBTDC;
     this.values = this.rawValues.map(CIgnitionBTDC.converter);
-    this.name = `${prefix} Ignition (BTDC)`;
+    this.name = `Advance ${prefix} (BTDC)`;
     this.category = MapCategories.Ignition;
   }
   private setAsFuelMap(prefix: string) {
     this.converter = CAFR;
     this.values = this.rawValues.map(CAFR.converter);
     this.category = MapCategories.Injection;
-    this.name = `${prefix} Injection (AFR)`;
+    this.name = `Fuel ${prefix} (AFR)`;
   }
 
   public custProps = null;
@@ -346,5 +364,6 @@ export enum MapCategories {
   Idle,
   RevLimiter,
   MapAxis,
+  AFM,
   Unknown,
 }

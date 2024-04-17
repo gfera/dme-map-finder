@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 shadow-md bg-white rounded-md dark:bg-gray-700">
+  <div class="p-4 shadow-md bg-white rounded-md dark:bg-gray-700 text-sm">
     <div class="w-full relative">
       <button
         class="absolute top-0 right-0"
@@ -24,23 +24,24 @@
         </h4>
       </div>
     </div>
-    <div class="w-full overflow-auto mt-8">
-      <table class="w-full">
+    <ScrollPanel class="w-full mt-8 text-sm">
+      <table>
         <tr
           v-for="(row, irow) in rows"
           :key="'r' + irow"
         >
           <td
             v-if="map.yAxis"
-            class="border-r border-gray-400 border-solid"
+            class="border-r border-gray-100 border-solid px-2 py-1"
           >
             <b>{{ map.yAxis.values[irow] }}{{ map.yAxis.descriptor?.unit }}</b>
           </td>
           <td
             v-for="(col, icol) in cols"
             :key="'c' + icol"
+            @click="toggleRaw"
           >
-            {{ getValue(irow, icol) }}
+            {{ getValue(irow, icol, showRaw) }}
           </td>
         </tr>
         <tr>
@@ -48,19 +49,21 @@
           <td
             v-for="(col, icol) in cols"
             :key="'x' + icol"
-            class="border-t border-gray-400 border-solid"
+            class="border-t border-gray-100 border-solid px-2"
           >
             <b>{{ map.xAxis.values[icol] }} {{ map.xAxis.descriptor?.unit }}</b>
           </td>
         </tr>
       </table>
-    </div>
+    </ScrollPanel>
   </div>
 </template>
 <script lang="ts" setup>
-import {  PropType } from "vue";
+import {  PropType, ref } from "vue";
 import { AsideMap, EcuMap } from "../models/map";
+
 import { useMainStore } from "@/store";
+import ScrollPanel from "primevue/scrollpanel";
 
 const props = defineProps({
   map: {
@@ -72,9 +75,15 @@ const rows = props.map.yAxis?.count || 1;
 const cols = props.map.xAxis?.count || 1;
 const size = `${cols}x${rows}`;
 
-const getValue = (row: number, col: number) => {
+
+const showRaw = ref(false);
+const toggleRaw = () =>{
+  showRaw.value = !showRaw.value;
+}
+
+const getValue = (row: number, col: number, raw=false) => {
   const pos = rows === 1 ? col : col * rows + row;
-  return props.map.values[pos];
+  return raw ? props.map.rawValues[pos] : props.map.values[pos];
 };
 
 const toHex = (value: number) => {
@@ -93,6 +102,6 @@ const close = ()=>{
 </script>
 <style scoped>
 td:nth-child(odd) {
-  background-color: antiquewhite;
+  background-color: rgb(var(--surface-200));
 }
 </style>
