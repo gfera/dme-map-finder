@@ -17,7 +17,9 @@ app.use(PrimeVue, {
 const FORBIDDEN_WARNS = ["Failed to resolve component"];
 
 app.config.warnHandler = (msg, instance, trace) => {
-  !FORBIDDEN_WARNS.some((warning) => msg.includes(warning)) &&
+  // Check if the message starts with any of the forbidden warning strings
+  // This is more precise than `includes` and reduces the chance of suppressing unrelated warnings.
+  !FORBIDDEN_WARNS.some((warning) => msg.startsWith(warning)) &&
     console.warn("[Vue warn]: ".concat(msg).concat(trace));
 };
 
