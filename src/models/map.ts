@@ -52,21 +52,34 @@ export class MapAxis {
   }
 
   private calcValues() {
-    this.values = this.rawValues.map((_, i) => {
-      return this.rawValues.reduceRight(
-        (prev, next, idx) => (idx >= i ? prev - next : prev),
-        256
-      );
-    });
-    if (!this.descriptor) return;
-    const { conversion } = this.descriptor;
-    if (conversion) {
-      this.values = this.values.map((v) => conversion(v));
-      this._maxValue = Math.max(...this.values);
-      this._minValue = Math.min(...this.values);
+    if (this.rawValues.length === 0) {
+      this.values = [];
+    } else {
+      const suffixSums: number[] = new Array(this.rawValues.length);
+      suffixSums[this.rawValues.length - 1] = this.rawValues[this.rawValues.length - 1];
+      for (let i = this.rawValues.length - 2; i >= 0; i--) {
+        suffixSums[i] = this.rawValues[i] + suffixSums[i + 1];
+      }
+      this.values = this.rawValues.map((_, i) => 256 - suffixSums[i]);
     }
-    this._minRawValue = Math.min(...this.rawValues);
-    this._maxRawValue = Math.max(...this.rawValues);
+
+    // _minRawValue and _maxRawValue should always be calculated from rawValues
+    this._minRawValue = this.rawValues.length > 0 ? Math.min(...this.rawValues) : Infinity;
+    this._maxRawValue = this.rawValues.length > 0 ? Math.max(...this.rawValues) : -Infinity;
+
+    if (this.descriptor && this.descriptor.conversion) {
+      const { conversion } = this.descriptor;
+      this.values = this.values.map((v) => conversion(v));
+      // Ensure values is not empty before trying to spread into Math.max/min for converted values
+      if (this.values.length > 0) {
+        this._maxValue = Math.max(...this.values);
+        this._minValue = Math.min(...this.values);
+      } else {
+        // If values array is empty after conversion (unlikely but possible if rawValues was empty)
+        // then _minValue and _maxValue should reflect this, e.g., 0 or specific defaults.
+        // They are already initialized to 0, so this might be fine.
+      }
+    }
   }
 
   get minValue() {
@@ -93,7 +106,6 @@ export class EcuMap {
   public converters!: UnitConverter[];
   public createAxisMaps = false;
   //
-  private _debug = false;
   private _minRawValue = 0;
   private _maxRawValue = 0;
   private _minValue = 0;
@@ -110,9 +122,6 @@ export class EcuMap {
     private potentialSize: number,
     public baseAxisMap: MapAxis = null
   ) {
-    if (address === 0x5abb) {
-      this._debug = true;
-    }
     if (this.baseAxisMap) {
       this.initAxis();
     } else {
@@ -145,8 +154,6 @@ export class EcuMap {
     if (this.isValid) {
       this.findData();
       this.clasifyMap();
-    } else {
-      this._debug && console.log("Invalid map");
     }
   }
 
@@ -160,14 +167,6 @@ export class EcuMap {
     const count = array[1];
     const values = array.slice(2, count + 2);
     const yAxisFits = currMapSize < potentialSize;
-
-    this._debug &&
-      console.log("Analyzing axis", {
-        descriptor,
-        count,
-        values,
-        potentialSize,
-      });
 
     return count > 32 || !descriptor.known || !yAxisFits
       ? new MapAxis(-1, descriptor, 1, [])
@@ -200,7 +199,6 @@ export class EcuMap {
   }
 
   private findAxis() {
-    this._debug && console.log("Finding axis");
     const { address, bytes, potentialSize } = this;
     const xAxis: MapAxis | null = this.analyzeAxis(
       address,
@@ -209,12 +207,10 @@ export class EcuMap {
       potentialSize
     );
     if (!xAxis || !xAxis.descriptor.known) {
-      this._debug && console.log("No X Axis, invalid map");
       this._isValid = false;
       return null;
     }
     this.xAxis = xAxis;
-    this._debug && console.log("X Axis found", this.xAxis);
 
     const mapSize = xAxis.totalSize + xAxis.count;
     const yAxisAddress = address + xAxis.totalSize;
@@ -241,11 +237,19 @@ export class EcuMap {
     );
     this._minRawValue = Math.min(...this.rawValues);
     this._maxRawValue = Math.max(...this.rawValues);
-    if (
-      this.rawValues.filter((v, i, arr) => arr.indexOf(v) === i).length === 1
-    ) {
-      // Means all values are equal. Discard.
-      // this._isValid = false;
+
+    if (this.rawValues.length > 1) {
+      let allEqual = true;
+      for (let i = 1; i < this.rawValues.length; i++) {
+        if (this.rawValues[i] !== this.rawValues[0]) {
+          allEqual = false;
+          break;
+        }
+      }
+      if (allEqual) {
+        // Means all values are equal. Discard.
+        // this._isValid = false;
+      }
     }
   }
 

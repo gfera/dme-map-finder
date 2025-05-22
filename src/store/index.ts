@@ -25,41 +25,63 @@ export const useMainStore = defineStore("main", () => {
   const checksumCurrent = ref("");
   const checksumNew = ref("");
   const openedMaps = shallowRef<EcuMap[]>([]);
-  const revLimiters = ref<RevLimiter[]>([]);
   const maps = shallowRef<EcuMap[]>([]);
   const addresses = ref<number[]>([]);
   const groups = ref(mapGroups);
 
   const loadFile = (payload: { name: string; buffer: ArrayBuffer }) => {
-    const buffer8Bit = new Uint8Array(payload.buffer);
-    loadedBin.value = Object.freeze({
-      buffer: payload.buffer,
-      buffer8Bit,
-      bytes: Array.from(buffer8Bit),
-      name: payload.name,
-    });
-    ecuNumber.value = findPartNumber(buffer8Bit);
-    checksumCurrent.value = getChecksum(buffer8Bit);
-    checksumNew.value = calcChecksum8Bit(buffer8Bit);
-    addresses.value = getMapTablesAddress(loadedBin.value.bytes);
+    try {
+      const buffer8Bit = new Uint8Array(payload.buffer);
+      loadedBin.value = Object.freeze({
+        buffer: payload.buffer,
+        buffer8Bit,
+        bytes: Array.from(buffer8Bit),
+        name: payload.name,
+      });
+      ecuNumber.value = findPartNumber(buffer8Bit);
+      checksumCurrent.value = getChecksum(buffer8Bit);
+      checksumNew.value = calcChecksum8Bit(buffer8Bit);
+      addresses.value = getMapTablesAddress(loadedBin.value.bytes);
 
-    maps.value = extractMaps(loadedBin.value.bytes, addresses.value);
-    maps.value.push(...findRevLimiter(buffer8Bit));
-    maps.value.push(...findAFMMaps(buffer8Bit, loadedBin.value.bytes));
-    openedMaps.value = [];
-    groups.value.forEach((group) => {
-      group.items.splice(0, group.items.length);
-      const list: AsideMap[] = maps.value
-        .filter((map) => map.category === group.category)
-        .map((m) => ({
-          opened: false,
-          map: m,
-        }));
+      maps.value = extractMaps(loadedBin.value.bytes, addresses.value);
+      maps.value.push(...findRevLimiter(buffer8Bit));
+      maps.value.push(...findAFMMaps(buffer8Bit, loadedBin.value.bytes));
+      openedMaps.value = []; // Clear any previously opened maps
 
-      // list.sort((a, b) => a.map.name.localeCompare(b.map.name));
+      // Clear existing items in groups before populating
+      groups.value.forEach((group) => {
+        group.items.splice(0, group.items.length);
+      });
 
-      group.items.push(...list);
-    });
+      // Populate groups
+      groups.value.forEach((group) => {
+        const list: AsideMap[] = maps.value
+          .filter((map) => map.category === group.category)
+          .map((m) => ({
+            opened: false,
+            map: m,
+          }));
+        // list.sort((a, b) => a.map.name.localeCompare(b.map.name));
+        group.items.push(...list);
+      });
+    } catch (error) {
+      console.error("Error loading file:", error);
+
+      // Reset state to prevent inconsistencies
+      loadedBin.value = null;
+      ecuNumber.value = "";
+      checksumCurrent.value = "";
+      checksumNew.value = "";
+      maps.value = [];
+      openedMaps.value = [];
+      addresses.value = [];
+      groups.value.forEach((group) => {
+        group.items.splice(0, group.items.length);
+      });
+
+      // Optionally, re-throw the error if the caller needs to know about it
+      throw error;
+    }
   };
 
   const toggleMap = (item: AsideMap) => {
@@ -81,7 +103,6 @@ export const useMainStore = defineStore("main", () => {
     checksumCurrent,
     checksumNew,
     openedMaps,
-    revLimiters,
     maps,
     addresses,
     mapGroups,
